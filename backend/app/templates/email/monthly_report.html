@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .stat-card p {
+            margin: 10px 0 0;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .requests-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .requests-table th,
+        .requests-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .requests-table th {
+            background: #f8f9fa;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Monthly Activity Report</h1>
+        <p>{{ month }}</p>
+    </div>
+    
+    <div class="content">
+        <p>Dear {{ customer.name }},</p>
+        
+        <p>Here's your activity report for {{ month }}:</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Requests</h3>
+                <p>{{ stats.total_requests }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Completed</h3>
+                <p>{{ stats.completed_requests }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Pending</h3>
+                <p>{{ stats.pending_requests }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Spent</h3>
+                <p>${{ "%.2f"|format(stats.total_spent) }}</p>
+            </div>
+        </div>
+        
+        {% if requests %}
+        <h2>Service Request Details</h2>
+        <table class="requests-table">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                <tr>
+                    <td>{{ request.service.name }}</td>
+                    <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <span class="status status-{{ request.status }}">
+                            {{ request.status|title }}
+                        </span>
+                    </td>
+                    <td>${{ "%.2f"|format(request.service.base_price) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No service requests were made during this period.</p>
+        {% endif %}
+    </div>
+    
+    <div class="footer">
+        <p>Thank you for choosing Fixrify for your home service needs!</p>
+        <p>© {{ now.year }} Fixrify. All rights reserved.</p>
+    </div>
+</body>
+</html> 

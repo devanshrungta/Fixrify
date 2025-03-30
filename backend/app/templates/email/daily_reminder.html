@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .request {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: white;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Pending Service Requests</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hello {{ professional.name }},</p>
+        
+        <p>You have {{ pending_requests|length }} pending service request(s) that require your attention:</p>
+        
+        {% for request in pending_requests %}
+        <div class="request">
+            <h3>{{ request.service.name }}</h3>
+            <p><strong>Customer:</strong> {{ request.customer.name }}</p>
+            <p><strong>Date Requested:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p><strong>Location:</strong> {{ request.address }}</p>
+            {% if request.notes %}
+            <p><strong>Notes:</strong> {{ request.notes }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <a href="{{ url_for('professional.dashboard', _external=True) }}" class="cta-button">
+            View Dashboard
+        </a>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message from Fixrify. Please do not reply to this email.</p>
+        <p>© {{ now.year }} Fixrify. All rights reserved.</p>
+    </div>
+</body>
+</html> 

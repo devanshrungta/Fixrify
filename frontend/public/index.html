@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title>Fixrify - Home Repair & Maintenance Services</title>
+    <meta name="description" content="Your one-stop solution for all home repair and maintenance services">
+    <!-- Preload critical assets -->
+    <link rel="preload" href="<%= BASE_URL %>fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+    <!-- Prevent FOUC -->
+    <style>
+      .fade-enter-active, .fade-leave-active {
+        transition: opacity .3s;
+      }
+      .fade-enter, .fade-leave-to {
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but Fixrify doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+</html> 
