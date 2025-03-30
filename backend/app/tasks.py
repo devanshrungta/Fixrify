@@ -1,4 +1,4 @@
-from app import celery, db
+from app import db
 from app.models.user import User
 from app.models.service import ServiceRequest
 from datetime import datetime, timedelta
@@ -11,11 +11,25 @@ from app.extensions import cache
 from app.utils.email import send_email
 from sqlalchemy import and_
 import os
+from celery import Celery
 
 mail = Mail()
 
+from celery import Task
+from flask import current_app
+
+class taskContext(Task):
+    def __call__(self, *args, **kwargs):
+        with current_app.app_context():
+            return self.run(*args, **kwargs) 
+
+celery = Celery(
+    broker_url="redis://localhost:6379/1",
+    result_backend="redis://localhost:6379/2",
+)
+
 @celery.task
-def test_email():
+def test_email(base = taskContext):
     """Test email functionality"""
     send_email(
         subject="Test Email from Fixrify",
@@ -25,7 +39,7 @@ def test_email():
     return "Email sent successfully"
 
 @celery.task
-def send_daily_reminders():
+def send_daily_reminders(base = taskContext):
     """Send daily reminders to professionals with pending service requests"""
     try:
         # Get all professionals with pending requests
@@ -63,7 +77,7 @@ def send_daily_reminders():
         raise
 
 @celery.task
-def send_monthly_reports():
+def send_monthly_reports(base = taskContext):
     """Generate and send monthly activity report to customers"""
     try:
         # Get all customers
@@ -117,7 +131,7 @@ def send_monthly_reports():
         raise
 
 @celery.task
-def export_service_requests_csv():
+def export_service_requests_csv(base = taskContext):
     """Export completed service requests to CSV"""
     # Get all completed service requests
     service_requests = ServiceRequest.query.filter_by(status='completed').all()
@@ -154,7 +168,7 @@ def export_service_requests_csv():
     return filename
 
 @celery.task
-def generate_service_requests_csv():
+def generate_service_requests_csv(base = taskContext):
     # Get all service requests
     requests = ServiceRequest.query.all()
     

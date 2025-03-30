@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from flask.json.provider import DefaultJSONProvider
 import json
-from app.extensions import db, migrate, jwt, mail, cache, celery
+from app.extensions import db, migrate, jwt, mail, cache
 from app.api import bp as api_bp
 
 # Configure logging
@@ -30,7 +30,6 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     mail.init_app(app)
     cache.init_app(app)
-    celery.conf.update(app.config)
 
     # Register blueprints
     from app.auth import bp as auth_bp

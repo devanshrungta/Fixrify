@@ -36,13 +36,13 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'redis://172.17.0.1:6379/0'
 
     # Email settings
-    MAIL_SERVER = os.environ.get('MAIL_SERVER') or '172.17.0.1'
-    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 1025)
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
-    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL') is not None
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'noreply@fixrify.com'
+    MAIL_SERVER = 'localhost'
+    MAIL_PORT = 1025
+    MAIL_DEFAULT_SENDER = 'noreply@fixrify.com'
+    # MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
+    # MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL') is not None
+    # MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    # MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
     # File upload settings
     UPLOAD_FOLDER = 'uploads'
