@@ -155,62 +155,25 @@ def send_monthly_reports():
     except Exception as e:
         current_app.logger.error(f"Error sending monthly reports: {str(e)}")
         raise
-        
-@celery.task(base = taskContext)
-def export_service_requests_csv():
-    """Export completed service requests to CSV"""
-    # Get all completed service requests
-    service_requests = ServiceRequest.query.filter_by(status='completed').all()
 
-    # Create CSV
-    output = StringIO()
-    writer = csv.writer(output)
+@celery.task(base=taskContext)
+def generate_service_requests_csv():
+    """Generate a CSV file for all service requests."""
+    try:
+        # Get all service requests from the database
+        service_requests = ServiceRequest.query.all()
 
-    # Write header
-    writer.writerow([
-        'Service ID', 'Customer ID', 'Professional ID',
-        'Date of Request', 'Date of Completion',
-        'Status', 'Actual Price', 'Remarks'
-    ])
+        # Prepare CSV content
+        output = StringIO()
+        writer = csv.writer(output)
 
-    # Write data
-    for request in service_requests:
+        # Write header
         writer.writerow([
-            request.service_id,
-            request.customer_id,
-            request.professional_id,
-            request.created_at.strftime('%Y-%m-%d'),
-            request.completion_date.strftime('%Y-%m-%d') if request.completion_date else '',
-            request.status,
-            request.actual_price,
-            request.remarks
+            'ID', 'Customer', 'Service', 'Professional', 'Status', 'Address', 'Preferred Date', 'Created At', 'Completion Date', 'Actual Price'
         ])
 
-    # Save to file
-    filename = f'service_requests_{datetime.utcnow().strftime("%Y%m%d")}.csv'
-    with open(filename, 'w') as f:
-        f.write(output.getvalue())
-
-    return filename
-
-@celery.task(base = taskContext)
-def generate_service_requests_csv():
-    # Get all service requests
-    requests = ServiceRequest.query.all()
-
-    # Create a CSV file
-    filename = f'service_requests_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-    filepath = os.path.join('exports', filename)
-
-    # Ensure exports directory exists
-    os.makedirs('exports', exist_ok=True)
-
-    # Write data to CSV
-    with open(filepath, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['ID', 'Customer', 'Service', 'Professional', 'Status', 'Address', 'Preferred Date', 'Created At'])
-
-        for request in requests:
+        # Write service requests data
+        for request in service_requests:
             writer.writerow([
                 request.id,
                 request.customer.name,
@@ -219,7 +182,18 @@ def generate_service_requests_csv():
                 request.status,
                 request.address,
                 request.preferred_date,
-                request.created_at
+                request.created_at.strftime('%Y-%m-%d'),
+                request.completed_at.strftime('%Y-%m-%d') if request.completed_at else '',
+                request.final_price
             ])
 
-    return filepath
+        # Store the CSV content in cache (using task ID as cache key)
+        cache_key = f"service_requests_csv_{generate_service_requests_csv.request.id}"
+        cache.set(cache_key, output.getvalue(), timeout=3600)  # Cache for 1 hour
+
+        # Return the cache key to the client
+        return cache_key
+
+    except Exception as e:
+        current_app.logger.error(f"Error generating CSV: {str(e)}")
+        raise

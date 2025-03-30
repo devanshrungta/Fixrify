@@ -51,6 +51,53 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+const api2 = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  responseType: 'blob'
+});
+
+// Add token to requests
+api2.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+// Handle token expiration
+api2.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const message = error.response?.data?.message || 'An error occurred';
+    toast.error(message);
+
+    if (error.response?.status === 401) {
+      // Try to refresh token
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        try {
+          const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
+            headers: { Authorization: `Bearer ${refreshToken}` }
+          });
+          localStorage.setItem('token', response.data.access_token);
+          error.config.headers.Authorization = `Bearer ${response.data.access_token}`;
+          return api.request(error.config);
+        } catch {
+          // Refresh failed, logout user
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Auth API
 export const authAPI = {
@@ -98,6 +145,8 @@ export const adminAPI = {
   getPendingProfessionals: () => api.get('/admin/professionals/pending'),
   approveProfessional: (id) => api.post(`/admin/professionals/${id}/approve`),
   rejectProfessional: (id, reason) => api.post(`/admin/professionals/${id}/reject`, { reason }),
+  exportServiceRequests: () => api.post('/admin/exports/service-requests'),
+  getExport: (taskId) => api2.get(`/admin/exports/${taskId}`),
 };
 
 // Services API

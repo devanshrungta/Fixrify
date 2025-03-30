@@ -135,6 +135,13 @@
                 <router-link to="/admin/reports" class="btn btn-primary">
                   View Reports
                 </router-link>
+                <button 
+                  class="btn btn-success" 
+                  @click="generateExport"
+                  :disabled="exporting"
+                >
+                  {{ exporting ? 'Generating...' : 'Export Service Requests' }}
+                </button>
               </div>
             </div>
           </div>
@@ -171,13 +178,17 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
+import { adminAPI } from '@/services/api'
+import { useToast } from 'vue-toastification'
 
 export default {
   name: 'AdminDashboard',
   setup() {
     const store = useStore()
+    const toast = useToast()
     const loading = ref(false)
     const error = ref(null)
+    const exporting = ref(false)
 
     const totalUsers = computed(() => store.getters['admin/totalUsers'])
     const totalCustomers = computed(() => store.getters['admin/totalCustomers'])
@@ -238,6 +249,60 @@ export default {
       }
     }
 
+    const generateExport = async () => {
+      try {
+        exporting.value = true;
+        // Start the export task
+        const response = await adminAPI.exportServiceRequests();
+        const taskId = response.data.task_id;
+        
+        // Function to stop polling once the task is completed or failed
+        let isPolling = true;
+
+        // Poll for the export to be ready
+        const checkExport = async () => {
+          if (!isPolling) return;  // Stop polling if the task is completed or failed
+
+          try {
+            const exportResponse = await adminAPI.getExport(taskId);
+            // If the export file exists (i.e., the data is returned), then the task is complete
+            if (exportResponse.status === 200) {
+              // Create a download link
+              const link = document.createElement('a');
+              link.href = `/api/admin/exports/${taskId}`;
+              link.download = 'service-requests.csv';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              toast.success('Export downloaded successfully');
+              exporting.value = false;
+              isPolling = false;  // Stop polling once the task is completed
+            }
+          } catch (error) {
+            // If error status is 404, it means the export is not ready yet, continue polling
+            if (error.response && error.response.status === 404) {
+              // Continue polling if the export is not ready yet
+              setTimeout(checkExport, 2000);
+            } else {
+              // Handle other errors (e.g., server issues)
+              console.error('Error checking export status:', error);
+              toast.error('Failed to check export status');
+              exporting.value = false;
+              isPolling = false;  // Stop polling in case of other errors
+            }
+          }
+        };
+
+        // Start polling
+        checkExport();
+      } catch (error) {
+        console.error('Error generating export:', error);
+        toast.error('Failed to generate export');
+        exporting.value = false;
+      }
+    };
+
+
     onMounted(async () => {
       loading.value = true
       error.value = null
@@ -269,7 +334,9 @@ export default {
       formatDate,
       refreshBookings,
       completeBooking,
-      cancelBooking
+      cancelBooking,
+      exporting,
+      generateExport
     }
   }
 }

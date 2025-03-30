@@ -234,21 +234,43 @@ export default {
     const generateExport = async () => {
       try {
         exporting.value = true;
-        const response = await adminAPI.generateServiceRequestsCSV(exportForm.value);
+        // Start the export task
+        const response = await adminAPI.exportServiceRequests();
+        const taskId = response.data.task_id;
         
-        // Create a download link
-        const link = document.createElement('a');
-        link.href = `/api/admin/exports/${response.data.cache_key}`;
-        link.download = 'service-requests.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Poll for the export to be ready
+        const checkExport = async () => {
+          try {
+            const exportResponse = await adminAPI.getExport(taskId);
+            if (exportResponse.data.status === 'completed') {
+              // Create a download link
+              const link = document.createElement('a');
+              link.href = `/api/admin/exports/${taskId}`;
+              link.download = 'service-requests.csv';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              toast.success('Export downloaded successfully');
+              exporting.value = false;
+            } else if (exportResponse.data.status === 'failed') {
+              toast.error('Export generation failed');
+              exporting.value = false;
+            } else {
+              // Continue polling
+              setTimeout(checkExport, 2000);
+            }
+          } catch (error) {
+            console.error('Error checking export status:', error);
+            toast.error('Failed to check export status');
+            exporting.value = false;
+          }
+        };
         
-        toast.success('Export generated successfully');
+        // Start polling
+        checkExport();
       } catch (error) {
         console.error('Error generating export:', error);
         toast.error('Failed to generate export');
-      } finally {
         exporting.value = false;
       }
     };
@@ -259,8 +281,8 @@ export default {
 
     return {
       professionals,
-      exportForm,
       exporting,
+      exportForm,
       generateExport
     };
   }

@@ -10,6 +10,9 @@ from app.tasks import generate_service_requests_csv
 from datetime import datetime
 
 from app.extensions import cache
+from app.tasks import generate_service_requests_csv
+from io import BytesIO
+import csv
 
 @bp.route('/test', methods=['GET'])
 def test():
@@ -304,49 +307,44 @@ def search_professionals():
 @bp.route('/exports/service-requests', methods=['POST'])
 @admin_required
 def export_service_requests():
-    """Generate CSV export of service requests."""
-    data = request.get_json()
-    professional_id = data.get('professional_id')
-    start_date = data.get('start_date')
-    end_date = data.get('end_date')
-    
-    # Convert date strings to datetime objects
-    if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    
-    # Start async task
-    task = generate_service_requests_csv.delay(
-        professional_id=professional_id,
-        start_date=start_date,
-        end_date=end_date
-    )
-    
-    return jsonify({
-        'message': 'Export generation started',
-        'cache_key': task.id
-    })
+    """Trigger CSV export generation for all service requests."""
+    try:
+        # Start async task to generate the CSV
+        task = generate_service_requests_csv.delay()
 
-@bp.route('/exports/<cache_key>', methods=['GET'])
-@admin_required
-def get_export(cache_key):
-    """Retrieve generated CSV export."""
-    csv_data = cache.get(cache_key)
-    if not csv_data:
         return jsonify({
-            'error': 'Export not found or expired'
-        }), 404
-    
-    # Create in-memory file
-    from io import StringIO
-    output = StringIO()
-    output.write(csv_data)
-    output.seek(0)
-    
-    return send_file(
-        output,
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='service-requests.csv'
-    ) 
+            'message': 'CSV generation started.',
+            'task_id': task.id  # Send the task ID to track progress or retrieve the file later
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/exports/<task_id>', methods=['GET'])
+@admin_required
+def get_export(task_id):
+    """Retrieve the generated CSV export for service requests."""
+    try:
+        # Retrieve CSV data from the cache using task_id
+        cache_key = f"service_requests_csv_{task_id}"
+        csv_data = cache.get(cache_key)
+
+        if not csv_data:
+            return jsonify({'error': 'Export not found or expired'}), 404
+
+        # Convert the CSV string data into bytes
+        csv_bytes = csv_data.encode('utf-8')  # Encoding CSV data to bytes
+
+        # Create an in-memory binary stream
+        output = BytesIO(csv_bytes)
+        output.seek(0)  # Rewind to the beginning of the file
+        
+        return send_file(
+            output,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name='service_requests.csv'
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
